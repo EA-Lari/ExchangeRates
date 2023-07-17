@@ -1,0 +1,59 @@
+﻿version: '3.7'
+
+services:
+ crawler_service:
+    container_name: Crawler
+    depends_on:
+      - postgre_db_service
+      - rabbitmq3
+      - storage
+      - converter
+    build: 
+      context: ./
+      dockerfile: Crawler/Crawler.Main/Dockerfile    
+    restart: always
+    
+ postgre_db_service:    
+    container_name: PostgreSQL
+    image: postgres:11.4-alpine    
+    ports:
+      - 5432:5432
+    restart: always
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: qscwdv1!
+      POSTGRES_DB: cbrhangfire
+
+ rabbitmq3:
+    container_name: RabbitMQ
+    image: rabbitmq:3-management
+    environment:
+        - RABBITMQ_DEFAULT_USER=guest
+        - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+        # AMQP protocol port
+        #- 5672:5672
+        # HTTP management UI
+        - 15672:15672
+
+ converter:
+   build: 
+     context: ./
+     dockerfile: Converter/Converter.Main/Dockerfile
+   container_name: Converter
+   restart: always
+   depends_on:
+     - rabbitmq3
+     - storage
+
+ storage:
+     build: 
+       context: ./
+       dockerfile: Storage/Storage.Main/Dockerfile
+     container_name: Storage
+     restart: always
+     depends_on:
+       - postgre_db_service
+       - rabbitmq3
