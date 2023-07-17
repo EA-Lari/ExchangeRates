@@ -12,7 +12,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Storage.Core;
-using Storage.Core.Handlers;
 using Storage.Core.Repositories;
 using Storage.Core.Services;
 using Storage.Database;
@@ -38,7 +37,7 @@ namespace Storage.Main
             services.AddDbContext<CurrencyContext>(options =>
                 options.UseNpgsql(connectionString));
             services.AddTransient<CurrencyRatesRepository>()
-                .AddTransient<CurrencyService>()
+                .AddTransient<CurrencyService>();
             //.AddTransient<ICurrencyHandler<UpdateCurrencyInfoEvent>, UpdateCurrencyInfoHandler>()
             //.AddTransient<ICurrencyHandler<UpdateCurrencyRateEvent>, UpdateCurrencyRateHandler>();
             //.AddSingleton<MassTransitStateMachine <CurrencyState>, CurrencyStateMachine >();

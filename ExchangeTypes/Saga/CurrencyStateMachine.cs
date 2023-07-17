@@ -42,7 +42,7 @@ namespace ExchangeTypes.Saga
             During(RequestCurrencyInfo,
                 When(GetActualCurrency.Completed)
                 .Request(GetConvertCurrencies,
-                         x => x.Init<GetActualCurrencyRequest>(new { CorrelationId = x.Data.CorrelationId, Currencies = x.Data.Currencies }))
+                         x => x.Init<ConvertCurrencyRequest>(new { CorrelationId = x.Data.CorrelationId, Currencies = x.Data.Currencies }))
                 .TransitionTo(ConvertCurrencyInfo),
                 
                 When(GetActualCurrency.Faulted)
@@ -105,6 +105,6 @@ namespace ExchangeTypes.Saga
         public Request<CurrencyState, GetActualCurrencyRequest, GetActualCurrencyResponce> GetActualCurrency { get; set; }
 
         //Request for Convert currencies for service
-        public Request<CurrencyState, GetActualCurrencyRequest, GetActualCurrencyResponce> GetConvertCurrencies { get; set; }
+        public Request<CurrencyState, ConvertCurrencyRequest, ConvertCurrencyResponce> GetConvertCurrencies { get; set; }
     }
 }

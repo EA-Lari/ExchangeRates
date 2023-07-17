@@ -51,8 +51,9 @@ namespace Crawler.Main
             services.AddAutoMapper(x => x.AddProfile(new CurrancyProfile()));
             services.AddTransient<CurrencyService>()
                 .AddTransient<CurrencyPublisher>()
-                .AddTransient< ICurrencyHandler<GetActualCurrencyRequest, GetActualCurrencyResponce>, ConvertCurrencyHandler>()
-                .AddTransient<IConsumer<ConvertCurrencyRequest>, ConvertCurrencyConsumer>();
+                .AddTransient<ICurrencyHandler<GetActualCurrencyRequest, GetActualCurrencyResponce>, GetActualCurrencyHandler>()
+                .AddTransient<ICurrencyHandler<ConvertCurrencyRequest, ConvertCurrencyResponce>, ConvertCurrencyHandler>();
+            //   .AddTransient<IConsumer<ConvertCurrencyRequest>, ConvertCurrencyConsumer>();
             ;
             services.AddHttpClient<ICrawlerClientService, HttpClientService>();
             services.AddControllers(options =>
@@ -62,7 +63,7 @@ namespace Crawler.Main
             {
                 x.AddSagaStateMachine<CurrencyStateMachine, CurrencyState>()
                     .InMemoryRepository();
-                x.AddConsumer<IConsumer<ConvertCurrencyRequest>>();// ConvertCurrencyConsumer 
+                x.AddConsumer<ConvertCurrencyConsumer>();// ConvertCurrencyConsumer 
                 x.UsingRabbitMq((context, cfg)=> {
                     cfg.Message<UpdateCurrencyInfoEvent>(x => x.SetEntityName("UpdateCurrencyInfo"));
                     cfg.Message<ConvertCurrencyRateEvent>(x => x.SetEntityName("ConvertCurrencyRate"));
