@@ -9,7 +9,8 @@ namespace Crawler.Core
     {
         public CurrancyProfile()
         {
-            CreateMap<CurrencyItemInfoDTO, CurrencyDTO>();
+            CreateMap<CurrencyItemInfoDTO, ActualCurrencyFromWebDto>()
+                .ForMember(x => x.IsoCode, opt => opt.MapFrom(z => z.IsoCharCode));
             CreateMap<CurrencyItemInfoDTO, CurrencyInfoData>()
                 .ForMember(x => x.IsoCode, opt => opt.MapFrom(z => z.IsoCharCode));
             CreateMap<CurrencyValueDTO, PriceInCurrencyData>()

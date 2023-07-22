@@ -1,4 +1,4 @@
-using Automatonymous;
+﻿using Automatonymous;
 using Crawler.Core;
 using Crawler.Core.Interfaces;
 using Crawler.Core.Models;
@@ -10,6 +10,7 @@ using ExchangeTypes.Consumers;
 using ExchangeTypes.Events;
 using ExchangeTypes.Request;
 using ExchangeTypes.Saga;
+using GreenPipes;
 using Hangfire;
 using Hangfire.PostgreSql;
 using MassTransit;
@@ -20,6 +21,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
+using System;
 using System.Text;
 
 namespace Crawler.Main
@@ -51,32 +53,44 @@ namespace Crawler.Main
             services.AddAutoMapper(x => x.AddProfile(new CurrancyProfile()));
             services.AddTransient<CurrencyService>()
                 .AddTransient<CurrencyPublisher>()
-                .AddTransient<ICurrencyHandler<GetActualCurrencyRequest, GetActualCurrencyResponce>, GetActualCurrencyHandler>()
-                .AddTransient<ICurrencyHandler<ConvertCurrencyRequest, ConvertCurrencyResponce>, ConvertCurrencyHandler>();
-            //   .AddTransient<IConsumer<ConvertCurrencyRequest>, ConvertCurrencyConsumer>();
-            ;
-            services.AddHttpClient<ICrawlerClientService, HttpClientService>();
+                .AddTransient<ICurrencyHandler<GetActualCurrencyRequest, GetActualCurrencyResponce>, GetActualCurrencyHandler>();
+
+            services.AddHttpClient<ICrawlerClientService, CrawlerClientService>();
             services.AddControllers(options =>
                 options.Filters.Add(typeof(ExceptionFilter)));
             services.Configure<UrlCurrency>(_configuration.GetSection(nameof(UrlCurrency)));
             services.AddMassTransit(x =>
             {
+                x.SetKebabCaseEndpointNameFormatter();
+                x.AddDelayedMessageScheduler();
                 x.AddSagaStateMachine<CurrencyStateMachine, CurrencyState>()
                     .InMemoryRepository();
-                x.AddConsumer<ConvertCurrencyConsumer>();// ConvertCurrencyConsumer 
-                x.UsingRabbitMq((context, cfg)=> {
-                    cfg.Message<UpdateCurrencyInfoEvent>(x => x.SetEntityName("UpdateCurrencyInfo"));
-                    cfg.Message<ConvertCurrencyRateEvent>(x => x.SetEntityName("ConvertCurrencyRate"));
-                    cfg.Host(_configuration.GetSection("Rabbit").Value);
+                x.AddConsumer<ActualCurrencyConsumer>();
+                x.UsingRabbitMq((context, cfg) =>
+                {
                     cfg.UseInMemoryOutbox();
+
+                    cfg.UseDelayedMessageScheduler();
+                    cfg.Host(_configuration.GetSection("Rabbit").Value);
+                    
+                    cfg.UseMessageRetry(r =>
+                    {
+                        r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+                    });
+
                     cfg.ConfigureEndpoints(context);
                 });
             });
 
             services.AddMassTransitHostedService();
+
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        /// <summary>
+        /// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        /// </summary>
+        /// <param name="app"></param>
+        /// <param name="env"></param>
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
            // context.Database.Migrate();

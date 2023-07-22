@@ -75,7 +75,7 @@ namespace Crawler.Core
         /// </summary>
         /// <returns>List actual info by currencies</returns>
         /// использовать этот метод для получения всей информации по валютам
-        public async Task<List<CurrencyDTO>> GetCurrencyFromCBR()
+        public async Task<List<ActualCurrencyFromWebDto>> GetCurrencyFromCBR()
         {
             var taskInfo = _clientService.GetCurrencyInfos();
             var taskRate = _clientService.GetCurrencyRate(DateTime.Now);
@@ -83,19 +83,18 @@ namespace Crawler.Core
             var infos = await taskInfo;
             var rates = await taskRate;
 
-            var currencies = new List<CurrencyDTO>();
+            var currencies = new List<ActualCurrencyFromWebDto>();
             if (infos == null)
                 return currencies;
             foreach (var info in infos)
             {
-                var currenncy = _mapper.Map<CurrencyDTO>(info);
+                var currenncy = _mapper.Map<ActualCurrencyFromWebDto>(info);
                 currencies.Add(currenncy);
-                currenncy.Date = DateTime.Today;
                 var rate = rates.FirstOrDefault(x => x.CharCode == info.IsoCharCode);
                 if (rate != null)
                 {
                     var value = Convert.ToDecimal(rate.Value);
-                    currenncy.Value = value;
+                    currenncy.Price = value;
                 }
             }
 

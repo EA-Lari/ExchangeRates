@@ -14,7 +14,7 @@ namespace Crawler.Core.Interfaces
 
         Task UpdateRates(IEnumerable<CurrencyValueDTO> currencyValues);
 
-        Task<List<CurrencyDTO>> GetTodayCurrencies();
+        Task<List<ActualCurrencyFromWebDto>> GetTodayCurrencies();
 
         Task<bool> AnyInfo();
 

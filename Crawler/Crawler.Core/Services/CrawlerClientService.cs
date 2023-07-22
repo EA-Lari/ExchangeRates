@@ -10,15 +10,15 @@ using System.Xml.Serialization;
 
 namespace Crawler.Core
 {
-    public class HttpClientService : ICrawlerClientService
+    public class CrawlerClientService : ICrawlerClientService
     {
         private readonly HttpClient _httpClient;
         private readonly UrlCurrency _options;
-        private readonly ILogger<HttpClientService> _logger;
+        private readonly ILogger<CrawlerClientService> _logger;
 
-        public HttpClientService(HttpClient httpClient, 
+        public CrawlerClientService(HttpClient httpClient, 
             IOptions<UrlCurrency> options,
-            ILogger<HttpClientService> logger)
+            ILogger<CrawlerClientService> logger)
         {
             _httpClient = httpClient;
             _options = options.Value;
