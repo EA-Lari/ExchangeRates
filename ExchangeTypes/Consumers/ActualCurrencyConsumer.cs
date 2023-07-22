@@ -16,17 +16,11 @@ namespace ExchangeTypes.Consumers
             _actualCurrencyService = actualCurrencyService;
         }
 
-        public Task Consume(ConsumeContext<GetActualCurrencyRequest> context)
+        public async Task Consume(ConsumeContext<GetActualCurrencyRequest> context)
         {
             _logger.LogInformation($"Get Request:{typeof(GetActualCurrencyRequest)}");
-            var taskResult = _actualCurrencyService.Handler(context.Message);
-            taskResult.Wait();
-            var result = taskResult.Result;
-            return context.RespondAsync(new GetActualCurrencyResponce
-            {
-                CorrelationId = context.Message.CorrelationId,
-                Currencies = result.Currencies
-            });
+            var result = await _actualCurrencyService.Handler(context.Message);
+            await context.RespondAsync(result);
         }
     }
 }

@@ -5,7 +5,6 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace ExchangeTypes.Saga
 {
@@ -16,48 +15,79 @@ namespace ExchangeTypes.Saga
         {
             _logger = logger;
 
-            Event(() => UpdateCurrencyInfo , x => x.CorrelateById(m => m.Message.CorrelationId));
+            _logger.LogInformation("Start SAGA");
+
+            Event<UpdateCurrencyInfoEvent>(() => UpdateCurrencyRate , x => x.CorrelateById(m => m.Message.CorrelationId));
 
             InstanceState(x => x.CurrentState);
+
+            Request(() => UpdateCurrency);
 
             Request(() => GetActualCurrency);
 
             Request(() => GetConvertCurrencies);
 
+            Request(() => UpdateRates);
+
+            //Start, request currency 
             Initially(
-                When(UpdateCurrencyInfo)
+                When(UpdateCurrencyRate)
                 .Then(x =>
                 {
+                    _logger.LogInformation($"Get {nameof(UpdateCurrencyInfoEvent)}");
                     //Сохраняем идентификатор запроса и его адрес при старте саги чтобы потом на него ответить
                     if (!x.TryGetPayload(out SagaConsumeContext<CurrencyState, UpdateCurrencyInfoEvent> payload))
                         throw new Exception($"Unable to retrieve required payload for callback data {nameof(UpdateCurrencyInfoEvent)}.");
                     x.Instance.RequestId = payload.RequestId;
                     x.Instance.ResponseAddress = payload.ResponseAddress;
+                    _logger.LogInformation($"End {nameof(UpdateCurrencyInfoEvent)}");
                 })
                 .Request(GetActualCurrency,
-                         x => x.Init<GetActualCurrencyRequest>(new { CorrelationId = x.Data.CorrelationId }))
-                .TransitionTo(RequestCurrencyInfo)
+                         x => x.Init<GetActualCurrencyRequest>(new { CorrelationId = x.CorrelationId }))
+                .TransitionTo(RequestCurrencyRates)
                 ) ;
 
-            During(RequestCurrencyInfo,
-                When(GetActualCurrency.Completed)
+            //Call saving currency in DB
+            During(RequestCurrencyRates,
+               When(GetActualCurrency.Completed)
+               .Then(x => { _logger.LogInformation($"Get {nameof(GetActualCurrencyResponce)}"); })
+               .Request(UpdateCurrency,
+                        x => x.Init<UpdateCurrencyRequest>(new UpdateCurrencyRequest { CorrelationId = x.Data.CorrelationId,  Currencies = x.Data.Currencies }))
+               .TransitionTo(UpdateCurrencyInfo),
+
+               When(GetActualCurrency.Faulted)
+               .Then(x => _logger.LogError($"Error, step {nameof(GetActualCurrency)}: {string.Join(";\n", x.Data.Exceptions.Select(x => x.Message))}"))
+               .TransitionTo(Failed),
+
+               When(GetActualCurrency.TimeoutExpired)
+               .Then(x => _logger.LogError($"Error, step {nameof(GetActualCurrency)}:Timeout Expired On Get Money"))
+               .TransitionTo(Failed)
+               
+               );
+
+            //Call convert rates
+            During(UpdateCurrencyInfo,
+                When(UpdateCurrency.Completed)
                 .Request(GetConvertCurrencies,
-                         x => x.Init<ConvertCurrencyRequest>(new { CorrelationId = x.Data.CorrelationId, Currencies = x.Data.Currencies }))
-                .TransitionTo(ConvertCurrencyInfo),
+                         x => x.Init<ConvertCurrencyRequest>(new ConvertCurrencyRequest { CorrelationId = x.Data.CorrelationId, Currencies = x.Data.Currencies }))
+                .TransitionTo(ConverRate),
                 
-                When(GetActualCurrency.Faulted)
-                .Then(x => _logger.LogError($"Error, step {nameof(GetActualCurrency)}: { string.Join(";\n", x.Data.Exceptions.Select(x => x.Message))}"))
+                When(UpdateCurrency.Faulted)
+                .Then(x => _logger.LogError($"Error, step {nameof(UpdateCurrency)}: { string.Join(";\n", x.Data.Exceptions.Select(x => x.Message))}"))
                 .TransitionTo(Failed),
 
-                When(GetActualCurrency.TimeoutExpired)
-                .Then(x =>_logger.LogError($"Error, step {nameof(GetActualCurrency)}:Timeout Expired On Get Money"))
+                When(UpdateCurrency.TimeoutExpired)
+                .Then(x =>_logger.LogError($"Error, step {nameof(UpdateCurrency)}:Timeout Expired On Get Money"))
                 .TransitionTo(Failed)
+                
                 );
 
-            During(ConvertCurrencyInfo,
+            //Call save rates
+            During(ConverRate,
                 When(GetConvertCurrencies.Completed)
-                .Then(x => _logger.LogInformation($"Complite {nameof(GetConvertCurrencies)}, curriencies: {string.Join(",", x.Data.Currencies.Select(y=> y.Name))}"))
-                .TransitionTo(ConvertCurrencyInfo),
+                .Request(UpdateRates,
+                         x => x.Init<UpdateRatesRequest>(new UpdateRatesRequest { CorrelationId = x.Data.CorrelationId, Currencies = x.Data.Currencies }))
+                .TransitionTo(SaveRates),
 
                 When(GetConvertCurrencies.Faulted)
                 .Then(x => _logger.LogError($"Error, step {nameof(GetConvertCurrencies)}: {string.Join(";\n", x.Data.Exceptions.Select(x => x.Message))}"))
@@ -66,29 +96,31 @@ namespace ExchangeTypes.Saga
                 When(GetConvertCurrencies.TimeoutExpired)
                 .Then(x => _logger.LogError($"Error, step {nameof(GetConvertCurrencies)}:Timeout Expired On Get Money"))
                 .TransitionTo(Failed)
+                
                 );
 
-            //Initially(
-            //When(UpdateCurrencyInfo)
-            //    .TransitionTo(AcceptedCurrencyInfo));
+            //Call save rates in DB
+            During(SaveRates,
+                When(UpdateRates.Completed)
+                .Then(x => _logger.LogInformation($"Complite {nameof(UpdateRates)}, CorrelationId: {x.Data.CorrelationId}")),
 
-            //During(AcceptedCurrencyInfo,
-            //    When(UpdateCurrencyRate)
-            //        .TransitionTo(AcceptedCurrencyRate));
+                When(UpdateRates.Faulted)
+                .Then(x => _logger.LogError($"Error, step {nameof(UpdateRates)}: {string.Join(";\n", x.Data.Exceptions.Select(x => x.Message))}"))
+                .TransitionTo(Failed),
 
-            //During(AcceptedCurrencyRate,
-            //    When(UpdateCurrencyRate)
-            //        .TransitionTo(AcceptedCurrencyRate));
-            //During(AcceptedCurrencyInfo,
-            //When(UpdateCurrencyRate)
-            //    .Then(x => x.Instance = x.Data));
+                When(UpdateRates.TimeoutExpired)
+                .Then(x => _logger.LogError($"Error, step {nameof(UpdateRates)}:Timeout Expired On Get Money"))
+                .TransitionTo(Failed)
+                );
         }
 
-        public State RequestCurrencyInfo { get; private set; }
+        public State RequestCurrencyRates { get; private set; }
 
-        public State ConvertCurrencyInfo { get; private set; }
+        public State UpdateCurrencyInfo { get; private set; }
 
-        public State SaveCurrencyInfo { get; private set; }
+        public State ConverRate { get; private set; }
+
+        public State SaveRates { get; private set; }
 
         public State Failed { get; set; }
 
@@ -97,14 +129,21 @@ namespace ExchangeTypes.Saga
         /// <summary>
         /// Event for StartSaga
         /// </summary>
-        public Event<UpdateCurrencyInfoEvent> UpdateCurrencyInfo { get; private set; }
+        public Event<UpdateCurrencyInfoEvent> UpdateCurrencyRate { get; private set; }
 
         //   public Event<UpdateCurrencyRateEvent> UpdateCurrencyRate { get; private set; }
+
 
         //Request for get currency for service
         public Request<CurrencyState, GetActualCurrencyRequest, GetActualCurrencyResponce> GetActualCurrency { get; set; }
 
+        //Request for saving currency in DB
+        public Request<CurrencyState, UpdateCurrencyRequest, UpdateCurrencyResponce> UpdateCurrency { get; set; }
+
         //Request for Convert currencies for service
         public Request<CurrencyState, ConvertCurrencyRequest, ConvertCurrencyResponce> GetConvertCurrencies { get; set; }
+
+        //Request for saving rates in DB
+        public Request<CurrencyState, UpdateRatesRequest, UpdateRatesResponce> UpdateRates { get; set; }
     }
 }

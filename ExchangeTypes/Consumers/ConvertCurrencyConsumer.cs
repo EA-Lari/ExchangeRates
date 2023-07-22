@@ -16,17 +16,11 @@ namespace ExchangeTypes.Consumers
             _convertCurrencyService = actualCurrencyService;
         }
 
-        public Task Consume(ConsumeContext<ConvertCurrencyRequest> context)
+        public async Task Consume(ConsumeContext<ConvertCurrencyRequest> context)
         {
             _logger.LogInformation($"Get Request:{typeof(ConvertCurrencyRequest)}");
-            var taskResult = _convertCurrencyService.Handler(context.Message);
-            taskResult.Wait();
-            var result = taskResult.Result;
-            return context.RespondAsync(new ConvertCurrencyResponce
-            {
-                CorrelationId = context.Message.CorrelationId,
-                Currencies = result.Currencies
-            });
+            var result = await _convertCurrencyService.Handler(context.Message);
+            await context.RespondAsync(result);
         }
     }
 }

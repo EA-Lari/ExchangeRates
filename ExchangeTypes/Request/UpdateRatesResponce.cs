@@ -1,9 +1,8 @@
-﻿
-using System;
+﻿using System;
 
 namespace ExchangeTypes.Request
 {
-    public record GetActualCurrencyRequest
+    public record UpdateRatesResponce
     {
         public Guid? CorrelationId { get; set; }
     }

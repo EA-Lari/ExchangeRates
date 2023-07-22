@@ -6,8 +6,10 @@ services:
     depends_on:
       - postgre_db_service
       - rabbitmq3
-      - storage
-      - converter
+    ports:
+      - 8080:8080
+      - 80:80
+      - 81:81
     build: 
       context: ./
       dockerfile: Crawler/Crawler.Main/Dockerfile    
@@ -15,7 +17,7 @@ services:
     
  postgre_db_service:    
     container_name: PostgreSQL
-    image: postgres:11.4-alpine    
+    image: postgres:latest    
     ports:
       - 5432:5432
     restart: always
@@ -34,7 +36,7 @@ services:
         - RABBITMQ_DEFAULT_PASS=guest
     ports:
         # AMQP protocol port
-        #- 5672:5672
+        - 5672:5672
         # HTTP management UI
         - 15672:15672
 
@@ -47,6 +49,7 @@ services:
    depends_on:
      - rabbitmq3
      - storage
+     - crawler_service
 
  storage:
      build: 
@@ -57,3 +60,4 @@ services:
      depends_on:
        - postgre_db_service
        - rabbitmq3
+       - crawler_service
