@@ -3,10 +3,13 @@ using ExchangeTypes;
 using ExchangeTypes.Consumers;
 using ExchangeTypes.Events;
 using ExchangeTypes.Request;
+using GreenPipes;
 using MassTransit;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Reflection;
 
 namespace Converter.Main
@@ -32,21 +35,30 @@ namespace Converter.Main
                         .AddTransient<CurrencyPublisher>();
                      services.AddMassTransit(x =>
                      {
-                         //x.AddConsumers(Assembly.GetEntryAssembly());
+                         x.SetKebabCaseEndpointNameFormatter();
+                         x.AddDelayedMessageScheduler();
                          x.AddConsumer<ConvertCurrencyConsumer>();
                          x.UsingRabbitMq((context, cfg) =>
                          {
-                             cfg.Message<ConvertCurrencyRateEvent>(x => x.SetEntityName("ConvertCurrencyRate"));
-                             cfg.Message<UpdateCurrencyRateEvent>(x => x.SetEntityName("UpdateCurrencyRate"));
+                             cfg.UseInMemoryOutbox();
+
+                             cfg.UseDelayedMessageScheduler();
                              cfg.Host(hostContext.Configuration.GetSection("Rabbit").Value);
-                             //cfg.ReceiveEndpoint("event-listener", e =>
+
+                             cfg.UseMessageRetry(r =>
+                             {
+                                 r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+                             });
+                             cfg.ConfigureEndpoints(context);
+                             //cfg.ReceiveEndpoint("crawler", e =>
                              //{
-                             //    e.ConfigureConsumer<BaseCurrencyConsumer<ConvertCurrencyRateEvent>>(context);
+                             //    e.ConfigureConsumer<ConvertCurrencyConsumer>(context);
                              //});
                          });
 
                      });
                      services.AddMassTransitHostedService(true);
+
                  });
     }
 }

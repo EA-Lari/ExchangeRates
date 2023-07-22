@@ -12,22 +12,24 @@ namespace Converter.Core
         /// </summary>
         /// <param name="rate">Currency by which get rate all currencies</param>
         /// <returns>List currencies with price by all currencies include param "rate"</returns>
-        public List<RateCurrency> GetRateAllCurrencies(IList<CurrencyDTO> currencies)
+        public List<ConvertedRateDto> GetRateAllCurrencies(IList<SavedCurrencyDto> currencies)
         {
-            var result = new List<RateCurrency>(currencies.Count);
+            var result = new List<ConvertedRateDto>(currencies.Count);
 
             foreach (var currentCurrency in currencies)
             {
-                var newCurrency = new RateCurrency
+                var newCurrency = new ConvertedRateDto
                 {
-                    Name = currentCurrency.Name
+                    CurrencyId = currentCurrency.CurrencyId
                 };
                 
                 foreach (var otherCurrency in currencies)
                 {
-                    if (otherCurrency.CharCode == currentCurrency.CharCode) continue;
-                    var currencyRate = currentCurrency.Value.Value / otherCurrency.Value.Value;
-                    newCurrency.Prices.Add(otherCurrency.Name, currencyRate);
+                    if (otherCurrency.CurrencyId == currentCurrency.CurrencyId 
+                        || otherCurrency.Price == 0) 
+                        continue;
+                    var currencyRate = currentCurrency.Price / otherCurrency.Price;
+                    newCurrency.Rates.Add(otherCurrency.CurrencyId, currencyRate);
                 }
                 result.Add(newCurrency);
             }
