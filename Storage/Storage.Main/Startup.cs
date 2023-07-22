@@ -1,10 +1,7 @@
-using Automatonymous;
+using ExchangeTypes.Request;
 using ExchangeTypes;
-using ExchangeTypes.Consumers;
-using ExchangeTypes.Events;
 using ExchangeTypes.Saga;
 using MassTransit;
-using MassTransit.Saga;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +9,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Storage.Core;
+using Storage.Core.Handlers;
 using Storage.Core.Repositories;
 using Storage.Core.Services;
 using Storage.Database;
 using System;
+using ExchangeTypes.Consumers;
+using GreenPipes;
 
 namespace Storage.Main
 {
@@ -33,37 +33,45 @@ namespace Storage.Main
         public void ConfigureServices(IServiceCollection services)
         {
             var connectionString = _configuration.GetConnectionString("CurrencyContext");
+
             services.AddAutoMapper(x => x.AddProfile(new CurrancyProfile()));
+
             services.AddDbContext<CurrencyContext>(options =>
                 options.UseNpgsql(connectionString));
             services.AddTransient<CurrencyRatesRepository>()
-                .AddTransient<CurrencyService>();
-            //.AddTransient<ICurrencyHandler<UpdateCurrencyInfoEvent>, UpdateCurrencyInfoHandler>()
-            //.AddTransient<ICurrencyHandler<UpdateCurrencyRateEvent>, UpdateCurrencyRateHandler>();
-            //.AddSingleton<MassTransitStateMachine <CurrencyState>, CurrencyStateMachine >();
+                .AddTransient<CurrencyService>()
+                .AddTransient<ICurrencyHandler<UpdateCurrencyRequest, UpdateCurrencyResponce>, UpdateCurrencyInfoHandler>()
+                .AddTransient<ICurrencyHandler<UpdateRatesRequest, UpdateRatesResponce>, UpdateCurrencyRateHandler>();
+
 
             // var repository = new InMemorySagaRepository<OrderState>();
 
-
-
-
-            Console.WriteLine("Test");
-
-
-
-
             services.AddMassTransit(x =>
             {
-                //x.AddConsumersFromNamespaceContaining();
-                x.AddSagaStateMachine<CurrencyStateMachine, CurrencyState>()
-                    .InMemoryRepository();
+                x.SetKebabCaseEndpointNameFormatter();
+                x.AddDelayedMessageScheduler();
+                x.AddConsumer<UpdateCurrencyConsumer>();
+                x.AddConsumer<UpdateRatesConsumer>();
                 x.UsingRabbitMq((context, cfg) =>
                 {
-                    //cfg.Message<UpdateCurrencyInfoEvent>(x => x.SetEntityName("UpdateCurrencyInfo"));
-                    //cfg.Message<UpdateCurrencyRateEvent>(x => x.SetEntityName("UpdateCurrencyRate"));
+                    cfg.UseInMemoryOutbox();
+
+                    cfg.UseDelayedMessageScheduler();
                     cfg.Host(_configuration.GetSection("Rabbit").Value);
+
+                    cfg.UseMessageRetry(r =>
+                    {
+                        r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+                    });
+                    cfg.ConfigureEndpoints(context);
+                    //cfg.ReceiveEndpoint("crawler", e =>
+                    //{
+                    //    e.ConfigureConsumer<UpdateCurrencyConsumer>(context);
+                    //    e.ConfigureConsumer<UpdateRatesConsumer>(context);
+                    //});
                 });
             });
+
             services.AddMassTransitHostedService();
             services.AddControllers();
         }
@@ -73,7 +81,7 @@ namespace Storage.Main
         {
             Console.WriteLine("BEFOR connect Migration");
             context.Database.Migrate();
-            Console.WriteLine("AFTER connect Migra tion");
+            Console.WriteLine("AFTER connect Migration");
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

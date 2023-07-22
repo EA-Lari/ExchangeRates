@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ExchangeTypes.DTO;
 using ExchangeTypes.Events;
 using Storage.Database.Models;
 
@@ -8,8 +9,8 @@ namespace Storage.Core
     {
         public CurrancyProfile()
         {
-            CreateMap<CurrencyInfoData, Currency>()
-                .ForMember(x => x.RId, opt => opt.MapFrom(y => y.ParentCode));
+            CreateMap<ActualCurrencyFromWebDto, Currency>();
+                //.ForMember(x => x.RId, opt => opt.MapFrom(y => y.ParentCode));
         }
     }
 }

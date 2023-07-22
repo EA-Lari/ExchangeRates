@@ -1,7 +1,12 @@
 ﻿using AutoMapper;
+using Converter.Core;
+using ExchangeTypes.DTO;
 using ExchangeTypes.Events;
+using ExchangeTypes.Request;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Storage.Core.DTO;
+using Storage.Core.Handlers;
 using Storage.Database;
 using Storage.Database.Models;
 using System;
@@ -18,11 +23,13 @@ namespace Storage.Core.Repositories
     {
         private readonly CurrencyContext _context;
         private readonly IMapper _mapper;
+        private readonly ILogger<CurrencyRatesRepository> _logger;
 
-        public CurrencyRatesRepository(CurrencyContext context, IMapper mapper)
+        public CurrencyRatesRepository(CurrencyContext context, IMapper mapper, ILogger<CurrencyRatesRepository> logger)
         {
             _context = context;
             _mapper = mapper;
+            _logger = logger;
         }
 
         /// <summary>
@@ -52,6 +59,7 @@ namespace Storage.Core.Repositories
         /// <param name="rates">List of currency rates in DTO</param>
         public async Task SaveCurrencyRates(IEnumerable<ConvertCurrencyRateEvent> rates)
         {
+            _logger.LogInformation("SAVE RATEs START");
             var currencies = await _context.Currencies.ToListAsync();
             var currencyCurrent = currencies
                .Join(rates, c => c.IsoCode, r => r.IsoCharCode, (c, r) =>
@@ -80,37 +88,88 @@ namespace Storage.Core.Repositories
 
                 await _context.CurrencyRates.AddRangeAsync(nRate);
             }
-            Console.WriteLine("SAVE RATEs START");
+            
             await _context.SaveChangesAsync();
-            Console.WriteLine("SAVE RATEs End");
+
+            _logger.LogInformation("SAVE RATEs End");
+        }
+
+        /// <summary>
+        /// Convert event model to model and save currency rates
+        /// </summary>
+        /// <param name="currencies">List of currency rates in DTO</param>
+        public async Task SaveCurrencyRates(IEnumerable<ConvertedRateDto> currencies)
+        {
+            _logger.LogInformation("SAVE RATEs START");
+          
+            foreach (var currency in currencies)
+            {
+                var rates = currency.Rates
+                    .Select(x => new CurrencyRate
+                    {
+                        BaseCurrencyId = x.Key,
+                        CurrencyId = currency.CurrencyId,
+                        Date = DateTime.Now,
+                        Value = x.Value,
+                    })
+                    .ToList();
+
+                await _context.CurrencyRates.AddRangeAsync(rates);
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("SAVE RATEs End");
         }
 
         /// <summary>
         /// Convert event model to model and save info about currencies
         /// </summary>
         /// <param name="rates">List of info about currency in DTO</param>
-        public async Task SaveCurrencyInfo(IEnumerable<CurrencyInfoData> currencyInfos)
+        public async Task<IList<SavedCurrencyDto>> SaveCurrencyInfo(IEnumerable<ActualCurrencyFromWebDto> currencyInfos)
         {
+            _logger.LogInformation("START SAVE Currency info");
+
             var withCode = currencyInfos
                 .Where(x => !string.IsNullOrEmpty(x.IsoCode))
-                .ToArray();
+                .ToList();
+
+            withCode.Add(new ActualCurrencyFromWebDto
+            {
+                Price = 1,
+                IsoCode = "RUS",
+            });
+
+            //TODO: need change on AddOrUpdate
             var currencies = await _context.Currencies.ToListAsync();
+
+            var result = new List<SavedCurrencyDto>(currencyInfos.Count());
+
             foreach (var dto in withCode)
             {
                 var currency = currencies.FirstOrDefault(x => x.IsoCode == dto.IsoCode);
                 if (currency == null)
                 {
-                    var newCurrency = _mapper.Map<Currency>(dto);
-                    await _context.AddAsync(newCurrency);
+                    currency = _mapper.Map<Currency>(dto);
+                    await _context.AddAsync(currency);
+                    await _context.SaveChangesAsync();
                 }
                 else
                 {
                     _mapper.Map(dto, currency);
+                    await _context.SaveChangesAsync();
                 }
+
+                result.Add(new SavedCurrencyDto
+                {
+                    CurrencyId = currency.Id,
+                    Price = dto.Price
+                });
             }
-            Console.WriteLine("SAVE info START");
-            await _context.SaveChangesAsync();
-            Console.WriteLine("SAVE info End");
+
+            _logger.LogInformation("END SAVE Currency info");
+
+            return result;
         }
     }
 }
