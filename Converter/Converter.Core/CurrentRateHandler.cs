@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 
 namespace Converter.Core
 {
-    public class CurrentRateHandler : ICurrencyHandler<ConvertCurrencyRequest, ConvertCurrencyResponce> //: ICurrencyHandler<ConvertCurrencyRateEvent>
+    public class CurrentRateHandler : ICurrencyHandler<ConvertCurrencyRequest, ConvertCurrencyResponce> 
     {
-        private readonly ConverterService _converter;
+        private readonly IConverterService _converter;
         private readonly ILogger<CurrentRateHandler> _logger;
 
-        public CurrentRateHandler(ConverterService converter, ILogger<CurrentRateHandler> logger)
+        public CurrentRateHandler(IConverterService converter, ILogger<CurrentRateHandler> logger)
         {
             _converter = converter;
             _logger = logger;

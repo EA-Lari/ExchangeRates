@@ -1,11 +1,9 @@
 ﻿using ExchangeTypes.DTO;
-using ExchangeTypes.Request;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Converter.Core
 {
-    public class ConverterService
+    public class ConverterService : IConverterService
     {
         /// <summary>
         /// Сompiles the exchange rate for all currencies

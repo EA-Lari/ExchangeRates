@@ -1,6 +1,5 @@
 using ExchangeTypes.Request;
 using ExchangeTypes;
-using ExchangeTypes.Saga;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -43,9 +42,6 @@ namespace Storage.Main
                 .AddTransient<ICurrencyHandler<UpdateCurrencyRequest, UpdateCurrencyResponce>, UpdateCurrencyInfoHandler>()
                 .AddTransient<ICurrencyHandler<UpdateRatesRequest, UpdateRatesResponce>, UpdateCurrencyRateHandler>();
 
-
-            // var repository = new InMemorySagaRepository<OrderState>();
-
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
@@ -64,12 +60,6 @@ namespace Storage.Main
                         r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
                     });
                     cfg.ConfigureEndpoints(context);
-                    //cfg.ReceiveEndpoint("service", e =>
-                    //{
-                    //    e.ConfigureConsumer<UpdateCurrencyConsumer>(context);
-                    //    e.ConfigureConsumer<UpdateRatesConsumer>(context);
-                        
-                    //});
                 });
             });
 

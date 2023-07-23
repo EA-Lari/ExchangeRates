@@ -35,7 +35,6 @@ namespace ExchangeTypes.Saga
                 .Then(x =>
                 {
                     _logger.LogInformation($"Get {nameof(UpdateCurrencyInfoEvent)}");
-                    //Сохраняем идентификатор запроса и его адрес при старте саги чтобы потом на него ответить
                     if (!x.TryGetPayload(out SagaConsumeContext<CurrencyState, UpdateCurrencyInfoEvent> payload))
                         throw new Exception($"Unable to retrieve required payload for callback data {nameof(UpdateCurrencyInfoEvent)}.");
                     x.Instance.RequestId = payload.RequestId;
@@ -124,15 +123,10 @@ namespace ExchangeTypes.Saga
 
         public State Failed { get; set; }
 
-        //  public State AcceptedCurrencyRate { get; private set; }
-
         /// <summary>
         /// Event for StartSaga
         /// </summary>
         public Event<UpdateCurrencyInfoEvent> UpdateCurrencyRate { get; private set; }
-
-        //   public Event<UpdateCurrencyRateEvent> UpdateCurrencyRate { get; private set; }
-
 
         //Request for get currency for service
         public Request<CurrencyState, GetActualCurrencyRequest, GetActualCurrencyResponce> GetActualCurrency { get; set; }
