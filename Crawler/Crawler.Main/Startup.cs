@@ -62,29 +62,30 @@ namespace Crawler.Main
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
-                //x.AddDelayedMessageScheduler();
-                //x.AddSagaStateMachine<CurrencyStateMachine, CurrencyState>()
-                //    .InMemoryRepository();
-                x.AddSagaStateMachine<EventCurrencyStateMachine, CurrencyState>()
+                x.AddDelayedMessageScheduler();
+                x.AddSagaStateMachine<CurrencyStateMachine, CurrencyState>()
                     .InMemoryRepository();
+                //x.AddSagaStateMachine<EventCurrencyStateMachine, CurrencyState>()
+                //    .InMemoryRepository();
 
                 x.AddConsumer<ActualCurrencyConsumer>();
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     cfg.UseInMemoryOutbox();
 
-                   // cfg.UseDelayedMessageScheduler();
+                    cfg.UseDelayedMessageScheduler();
                     cfg.Host(_configuration.GetSection("Rabbit").Value);
                     
                     cfg.UseMessageRetry(r =>
                     {
                         r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
                     });
-                    cfg.ReceiveEndpoint("service", e =>
-                    {
-                        e.ConfigureConsumer<ActualCurrencyConsumer>(context);
-                        e.StateMachineSaga<CurrencyState>(context);
-                    });
+                    cfg.ConfigureEndpoints(context);
+                    //cfg.ReceiveEndpoint("service", e =>
+                    //{
+                    //    e.ConfigureConsumer<ActualCurrencyConsumer>(context);
+                    //    e.StateMachineSaga<CurrencyState>(context);
+                    //});
                 });
             });
 

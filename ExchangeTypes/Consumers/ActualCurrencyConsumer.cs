@@ -21,7 +21,7 @@ namespace ExchangeTypes.Consumers
         {
             _logger.LogInformation($"Get Request: {nameof(GetActualCurrencyRequest)}");
             var result = await _actualCurrencyService.Handler(context.Message);
-            await context.Publish(result);
+            await context.RespondAsync(result);
             _logger.LogInformation($"Push: {nameof(GetActualCurrencyResponce)}");
         }
     }

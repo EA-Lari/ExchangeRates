@@ -49,27 +49,27 @@ namespace Storage.Main
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
-                //x.AddDelayedMessageScheduler();
+                x.AddDelayedMessageScheduler();
                 x.AddConsumer<UpdateCurrencyConsumer>();
                 x.AddConsumer<UpdateRatesConsumer>();
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     cfg.UseInMemoryOutbox();
 
-                    //cfg.UseDelayedMessageScheduler();
+                    cfg.UseDelayedMessageScheduler();
                     cfg.Host(_configuration.GetSection("Rabbit").Value);
 
                     cfg.UseMessageRetry(r =>
                     {
                         r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
                     });
-                    //cfg.ConfigureEndpoints(context);
-                    cfg.ReceiveEndpoint("service", e =>
-                    {
-                        e.ConfigureConsumer<UpdateCurrencyConsumer>(context);
-                        e.ConfigureConsumer<UpdateRatesConsumer>(context);
+                    cfg.ConfigureEndpoints(context);
+                    //cfg.ReceiveEndpoint("service", e =>
+                    //{
+                    //    e.ConfigureConsumer<UpdateCurrencyConsumer>(context);
+                    //    e.ConfigureConsumer<UpdateRatesConsumer>(context);
                         
-                    });
+                    //});
                 });
             });
 
