@@ -10,11 +10,11 @@ using Microsoft.Extensions.Hosting;
 using Storage.Core;
 using Storage.Core.Handlers;
 using Storage.Core.Repositories;
-using Storage.Core.Services;
 using Storage.Database;
 using System;
 using ExchangeTypes.Consumers;
 using GreenPipes;
+using ExchangeTypes.DTO;
 
 namespace Storage.Main
 {
@@ -38,9 +38,9 @@ namespace Storage.Main
             services.AddDbContext<CurrencyContext>(options =>
                 options.UseNpgsql(connectionString));
             services.AddTransient<CurrencyRatesRepository>()
-                .AddTransient<CurrencyService>()
                 .AddTransient<ICurrencyHandler<UpdateCurrencyRequest, UpdateCurrencyResponce>, UpdateCurrencyInfoHandler>()
-                .AddTransient<ICurrencyHandler<UpdateRatesRequest, UpdateRatesResponce>, UpdateCurrencyRateHandler>();
+                .AddTransient<ICurrencyHandler<UpdateRatesRequest, UpdateRatesResponce>, UpdateCurrencyRateHandler>()
+                .AddTransient<ICurrencyHandler<FilterByCurrencyDto, CurrencyRateResponce>, GetCurrencyHandler>();
 
             services.AddMassTransit(x =>
             {
@@ -48,6 +48,7 @@ namespace Storage.Main
                 x.AddDelayedMessageScheduler();
                 x.AddConsumer<UpdateCurrencyConsumer>();
                 x.AddConsumer<UpdateRatesConsumer>();
+                x.AddConsumer<GetCurrencyConsumer>();
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     cfg.UseInMemoryOutbox();

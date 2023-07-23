@@ -3,7 +3,6 @@ using ExchangeTypes.Events;
 using ExchangeTypes.Request;
 using Microsoft.Extensions.Logging;
 using Storage.Core.Repositories;
-using Storage.Core.Services;
 using System.Threading.Tasks;
 
 namespace Storage.Core.Handlers

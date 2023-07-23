@@ -1,12 +1,11 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Converter.Core;
 using ExchangeTypes.DTO;
 using ExchangeTypes.Events;
 using ExchangeTypes.Request;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Storage.Core.DTO;
-using Storage.Core.Handlers;
 using Storage.Database;
 using Storage.Database.Models;
 using System;
@@ -37,7 +36,7 @@ namespace Storage.Core.Repositories
         /// </summary>
         /// <param name="filter"></param>
         /// <returns>List with rates by filter</returns>
-        public List<CurrencyRate> GetCurrencies(FilterByCurrencyDTO filter)
+        public Task<List<CurrencyRateDto>> GetCurrencies(FilterByCurrencyDto filter)
         {
             var currencyQuery = _context.CurrencyRates.AsQueryable();
             if (filter.DateBegin != null)
@@ -50,7 +49,18 @@ namespace Storage.Core.Repositories
                 if (filter.CurrencyCods.Count != 0)
                     currencyQuery = currencyQuery
                         .Where(x => filter.CurrencyCods.Any(isoCode => isoCode == x.Currency.IsoCode));
-            return currencyQuery.ToList();
+            return currencyQuery
+
+                .Select(x => _mapper.Map<CurrencyRateDto>(x))
+                //.Select(x => new CurrencyRateDto
+                //{
+                //    BaseCurrencyId = x.BaseCurrencyId,
+                //    CurrencyId = x.CurrencyId,
+                //    Date = x.Date,
+                //    Id = x.Id,
+                //    Value = x.Value,
+                //})
+                .ToListAsync();
         }
 
         /// <summary>

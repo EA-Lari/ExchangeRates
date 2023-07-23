@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Storage.Core.DTO
+namespace ExchangeTypes.DTO
 {
-    public class FilterByCurrencyDTO
+    public class FilterByCurrencyDto
     {
         public DateTime? DateBegin { get; set; }
 

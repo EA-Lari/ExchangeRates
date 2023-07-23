@@ -1,5 +1,6 @@
 ﻿using Crawler.Core;
 using ExchangeTypes;
+using ExchangeTypes.DTO;
 using ExchangeTypes.Events;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
@@ -14,15 +15,13 @@ namespace Crawler.Main
     [ApiController]
     public class CurrencyController : ControllerBase
     {
-        private readonly CurrencyService _service;
-        //private readonly CurrencyPublisher _publisher;
+        private readonly ICurrencyService _service;
         private readonly IBus _bus;
         private readonly ILogger<CurrencyController> _logger;
 
-        public CurrencyController(CurrencyService service, ILogger<CurrencyController> logger, IBus bus)
+        public CurrencyController(ICurrencyService service, ILogger<CurrencyController> logger, IBus bus)
         {
             _service = service;
-            // _publisher = publisher;
             _logger = logger;
             _bus = bus;
             _bus.GetSendEndpoint(new Uri("queue:service"));
@@ -40,11 +39,19 @@ namespace Crawler.Main
         {
             _logger.LogInformation($"Publish {nameof(UpdateCurrencyInfoEvent)}");
             var update = new UpdateCurrencyInfoEvent { CorrelationId = System.Guid.NewGuid() };
-           // _bus.GetSendEndpoint(new Uri("saga"));
             await _bus.Publish(update);
-            // await _publisher.Publish(update);
             _logger.LogInformation($"End {nameof(UpdateCurrencyInfoEvent)}");
             return Ok(update.CorrelationId);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCurrencies()
+        {
+            _logger.LogInformation($"Publish {nameof(FilterByCurrencyDto)}");
+            var update = new UpdateCurrencyInfoEvent { CorrelationId = System.Guid.NewGuid() };
+            var currency = await _bus.Request<FilterByCurrencyDto, CurrencyRateResponce>(new FilterByCurrencyDto());
+            _logger.LogInformation($"End {nameof(FilterByCurrencyDto)}");
+            return Ok(currency);
         }
     }
 }
