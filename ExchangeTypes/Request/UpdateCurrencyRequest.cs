@@ -7,7 +7,7 @@ namespace ExchangeTypes.Request
 {
     public record UpdateCurrencyRequest
     {
-        public Guid? CorrelationId { get; set; }
+        public Guid CorrelationId { get; set; }
 
         public IList<ActualCurrencyFromWebDto> Currencies { get; set; }
     }

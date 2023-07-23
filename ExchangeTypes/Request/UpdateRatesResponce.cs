@@ -4,6 +4,6 @@ namespace ExchangeTypes.Request
 {
     public record UpdateRatesResponce
     {
-        public Guid? CorrelationId { get; set; }
+        public Guid CorrelationId { get; set; }
     }
 }

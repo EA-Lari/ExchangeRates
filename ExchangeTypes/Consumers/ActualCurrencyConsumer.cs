@@ -1,6 +1,7 @@
 ﻿using ExchangeTypes.Request;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Threading.Tasks;
 
 namespace ExchangeTypes.Consumers
@@ -18,9 +19,10 @@ namespace ExchangeTypes.Consumers
 
         public async Task Consume(ConsumeContext<GetActualCurrencyRequest> context)
         {
-            _logger.LogInformation($"Get Request:{typeof(GetActualCurrencyRequest)}");
+            _logger.LogInformation($"Get Request: {nameof(GetActualCurrencyRequest)}");
             var result = await _actualCurrencyService.Handler(context.Message);
-            await context.RespondAsync(result);
+            await context.Publish(result);
+            _logger.LogInformation($"Push: {nameof(GetActualCurrencyResponce)}");
         }
     }
 }

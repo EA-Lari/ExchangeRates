@@ -20,7 +20,7 @@ namespace ExchangeTypes.Consumers
         {
             _logger.LogInformation($"Get Request:{typeof(UpdateRatesRequest)}");
             var result = await _convertCurrencyService.Handler(context.Message);
-            await context.RespondAsync(result);
+            await context.Publish(result);
         }
     }
 }

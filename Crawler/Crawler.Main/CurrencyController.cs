@@ -5,6 +5,7 @@ using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections;
 using System.Threading.Tasks;
 
 namespace Crawler.Main
@@ -24,6 +25,7 @@ namespace Crawler.Main
             // _publisher = publisher;
             _logger = logger;
             _bus = bus;
+            _bus.GetSendEndpoint(new Uri("queue:service"));
         }
 
         [HttpGet]
@@ -38,6 +40,7 @@ namespace Crawler.Main
         {
             _logger.LogInformation($"Publish {nameof(UpdateCurrencyInfoEvent)}");
             var update = new UpdateCurrencyInfoEvent { CorrelationId = System.Guid.NewGuid() };
+           // _bus.GetSendEndpoint(new Uri("saga"));
             await _bus.Publish(update);
             // await _publisher.Publish(update);
             _logger.LogInformation($"End {nameof(UpdateCurrencyInfoEvent)}");

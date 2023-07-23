@@ -5,6 +5,6 @@ namespace ExchangeTypes.Request
 {
     public record GetActualCurrencyRequest
     {
-        public Guid? CorrelationId { get; set; }
+        public Guid CorrelationId { get; set; }
     }
 }
