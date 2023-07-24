@@ -50,16 +50,14 @@ namespace Storage.Core.Repositories
                     currencyQuery = currencyQuery
                         .Where(x => filter.CurrencyCods.Any(isoCode => isoCode == x.Currency.IsoCode));
             return currencyQuery
-
-                .Select(x => _mapper.Map<CurrencyRateDto>(x))
-                //.Select(x => new CurrencyRateDto
-                //{
-                //    BaseCurrencyId = x.BaseCurrencyId,
-                //    CurrencyId = x.CurrencyId,
-                //    Date = x.Date,
-                //    Id = x.Id,
-                //    Value = x.Value,
-                //})
+                .Select(x => new CurrencyRateDto
+                {
+                    BaseCurrencyId = x.BaseCurrencyId,
+                    CurrencyId = x.CurrencyId,
+                    Date = x.Date,
+                    Id = x.Id,
+                    Value = x.Value,
+                })
                 .ToListAsync();
         }
 

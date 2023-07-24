@@ -8,10 +8,10 @@ namespace Crawler.Main.Handlers
 {
     public class GetActualCurrencyHandler : ICurrencyHandler<GetActualCurrencyRequest, GetActualCurrencyResponce>
     {
-        private readonly CurrencyService _service;
+        private readonly ICurrencyService _service;
         private readonly ILogger<GetActualCurrencyHandler> _logger;
 
-        public GetActualCurrencyHandler(CurrencyService service, ILogger<GetActualCurrencyHandler> logger)
+        public GetActualCurrencyHandler(ICurrencyService service, ILogger<GetActualCurrencyHandler> logger)
         {
             _service = service;
             _logger = logger;
@@ -19,6 +19,7 @@ namespace Crawler.Main.Handlers
 
         public async Task<GetActualCurrencyResponce> Handler(GetActualCurrencyRequest @event)
         {
+            _logger.LogInformation($"Get {nameof(GetActualCurrencyRequest)}");
             var result = await _service.GetCurrencyFromCBR();
             return new GetActualCurrencyResponce
             {
